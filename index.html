@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parakram — Zero-Code Hardware Platform</title>
+  <meta name="description" content="Describe what your device should do in plain English. Parakram compiles it to real firmware bytecode in seconds." />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* =========================================================
+       DESIGN SYSTEM — Zinc/Blue Premium Dark
+    ========================================================= */
+    :root {
+      --bg:        #000000;
+      --surface:   #09090b;
+      --surface2:  #18181b;
+      --surface3:  #27272a;
+      --primary:   #3b82f6;
+      --primary-d: #2563eb;
+      --primary-g: rgba(59,130,246,0.12);
+      --secondary: #8b5cf6;
+      --accent:    #06b6d4;
+      --success:   #10b981;
+      --error:     #ef4444;
+      --warning:   #f59e0b;
+      --text:      #fafafa;
+      --text-2:    #a1a1aa;
+      --text-3:    #52525b;
+      --border:    rgba(255,255,255,0.06);
+      --border-h:  rgba(255,255,255,0.12);
+      --border-f:  rgba(59,130,246,0.4);
+      --glow:      0 0 0 3px rgba(59,130,246,0.15);
+      --r:         12px;
+      --r-sm:      8px;
+      --shadow:    0 20px 40px -12px rgba(0,0,0,0.8);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+      --trans:     all 0.15s ease;
+    }
+
+    /* ── RESET ─────────────────────────────────────────────── */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth;font-size:16px}
+    body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+    /* ── AMBIENT ───────────────────────────────────────────── */
+    .bg-grid{position:fixed;inset:0;z-index:-2;background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:64px 64px}
+    .bg-orb{position:fixed;border-radius:50%;filter:blur(120px);z-index:-1;pointer-events:none;opacity:0.6}
+    .bg-orb-a{width:600px;height:600px;background:rgba(59,130,246,0.08);top:-10%;left:0%;animation:orb-a 30s ease-in-out infinite}
+    .bg-orb-b{width:500px;height:500px;background:rgba(139,92,246,0.06);bottom:0%;right:-5%;animation:orb-b 24s ease-in-out infinite}
+    .bg-orb-c{width:400px;height:400px;background:rgba(6,182,212,0.04);top:50%;left:50%;animation:orb-c 36s ease-in-out infinite}
+    @keyframes orb-a{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,60px)}}
+    @keyframes orb-b{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,-40px)}}
+    @keyframes orb-c{0%,100%{transform:translate(0,0)}50%{transform:translate(20px,-30px)}}
+
+    /* ── NAVBAR ────────────────────────────────────────────── */
+    .nav{position:sticky;top:0;z-index:200;height:56px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(16px) saturate(1.8);background:rgba(0,0,0,0.6);border-bottom:1px solid var(--border)}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;letter-spacing:-0.3px;text-decoration:none;color:var(--text)}
+    .nav-bolt{width:28px;height:28px;background:linear-gradient(135deg,var(--primary),var(--secondary));border-radius:7px;display:grid;place-items:center;font-size:14px}
+    .nav-links{display:flex;align-items:center;gap:6px}
+    .nav-link{color:var(--text-2);text-decoration:none;font-size:13px;font-weight:500;padding:6px 12px;border-radius:6px;transition:var(--trans)}
+    .nav-link:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+    .nav-right{display:flex;align-items:center;gap:10px}
+    .status-badge{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;transition:var(--trans)}
+    .status-badge.online{border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);color:var(--success)}
+    .status-badge.offline{border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:var(--error)}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+    .status-badge.online .status-dot{animation:pulse 2s ease infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+    .btn-nav{padding:6px 14px;border-radius:var(--r-sm);background:transparent;border:1px solid var(--border);color:var(--text-2);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:var(--trans)}
+    .btn-nav:hover{border-color:var(--border-h);color:var(--text)}
+    .btn-nav.logged-in{color:var(--success);border-color:rgba(16,185,129,0.3)}
+
+    /* ── LAYOUT ────────────────────────────────────────────── */
+    .page{max-width:880px;margin:0 auto;padding:40px 24px 80px}
+
+    /* ── STEP INDICATOR ────────────────────────────────────── */
+    .step-indicator{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:36px}
+    .step-item{display:flex;flex-direction:column;align-items:center;gap:6px}
+    .step-circle{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);background:var(--surface);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--text-3);transition:var(--trans);position:relative;z-index:1}
+    .step-item.active .step-circle{border-color:var(--primary);background:var(--primary);color:#fff;box-shadow:0 0 0 4px var(--primary-g)}
+    .step-item.done .step-circle{border-color:var(--success);background:rgba(16,185,129,0.15);color:var(--success)}
+    .step-label{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;transition:var(--trans)}
+    .step-item.active .step-label{color:var(--primary)}
+    .step-item.done .step-label{color:var(--success)}
+    .step-line{height:2px;width:64px;background:var(--border);margin-bottom:24px;flex-shrink:0;transition:var(--trans)}
+    .step-line.done{background:var(--success)}
+
+    /* ── WIZARD ────────────────────────────────────────────── */
+    .wizard-wrap{position:relative;overflow:hidden}
+    .wizard-step{display:none;animation:step-in 0.3s ease}
+    .wizard-step.active{display:block}
+    @keyframes step-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── CARD ──────────────────────────────────────────────── */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;box-shadow:var(--shadow);position:relative}
+    .card:hover{border-color:var(--border-h)}
+
+    /* ── STEP 1 ────────────────────────────────────────────── */
+    .step-title{font-size:20px;font-weight:700;letter-spacing:-0.3px;margin-bottom:4px}
+    .step-sub{font-size:14px;color:var(--text-2);margin-bottom:20px}
+    .textarea-wrap{position:relative;margin-bottom:16px}
+    .prompt-textarea{width:100%;min-height:120px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;padding:14px;resize:vertical;outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+    .prompt-textarea::placeholder{color:var(--text-3)}
+    .prompt-textarea:focus{border-color:var(--border-f);box-shadow:var(--glow)}
+    .char-count{position:absolute;bottom:8px;right:10px;font-size:11px;color:var(--text-3);pointer-events:none}
+    .board-label,.examples-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-3);margin-bottom:8px}
+    .board-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+    .pill{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-2);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:var(--trans)}
+    .pill:hover{border-color:var(--border-h);color:var(--text)}
+    .pill.active{border-color:var(--primary);background:var(--primary-g);color:var(--primary)}
+    .example-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px}
+    .chip{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-2);font-family:'Inter',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:var(--trans)}
+    .chip:hover{border-color:var(--accent);color:var(--accent);background:rgba(6,182,212,0.06)}
+    .action-row{display:flex;align-items:center;justify-content:flex-end}
+
+    /* ── BUTTONS ───────────────────────────────────────────── */
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:var(--r-sm);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;outline:none;transition:var(--trans)}
+    .btn:disabled{opacity:0.35;cursor:not-allowed;transform:none !important}
+    .btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.1)}
+    .btn-primary:not(:disabled):hover{background:var(--primary-d);transform:translateY(-1px);box-shadow:0 4px 12px rgba(59,130,246,0.3)}
+    .btn-primary:not(:disabled):active{transform:translateY(0)}
+    .btn-ghost{background:var(--surface2);color:var(--text-2);border:1px solid var(--border)}
+    .btn-ghost:hover{background:var(--surface3);color:var(--text);border-color:var(--border-h)}
+    .btn-success{background:rgba(16,185,129,0.12);color:var(--success);border:1px solid rgba(16,185,129,0.25)}
+    .btn-success:hover{background:rgba(16,185,129,0.2)}
+    .spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;animation:rotate 0.5s linear infinite;display:none}
+    .btn.loading .spin{display:block}
+    .btn.loading .btn-text{display:none}
+    @keyframes rotate{to{transform:rotate(360deg)}}
+
+    /* ── STEP 2: IR PREVIEW ───────────────────────────────── */
+    .loader-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:48px 0}
+    .ring-loader{width:40px;height:40px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--primary);border-right-color:var(--secondary);animation:rotate 0.8s linear infinite}
+    .loader-label{font-size:13px;color:var(--text-2);font-weight:500}
+    .ir-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+    .ir-summary{font-size:14px;color:var(--text-2);line-height:1.6;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+    .feasibility-badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0}
+    .feasibility-badge.feasible{background:rgba(16,185,129,0.1);color:var(--success);border:1px solid rgba(16,185,129,0.25)}
+    .feasibility-badge.infeasible{background:rgba(239,68,68,0.1);color:var(--error);border:1px solid rgba(239,68,68,0.25)}
+    .ir-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px}
+    .ir-block{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px}
+    .ir-block-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);margin-bottom:6px}
+    .tag-row{display:flex;flex-wrap:wrap;gap:4px}
+    .tag{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
+    .tag-sensor{background:rgba(6,182,212,0.1);color:var(--accent)}
+    .tag-actuator{background:rgba(139,92,246,0.1);color:var(--secondary)}
+    .tag-trigger{background:rgba(245,158,11,0.1);color:var(--warning)}
+    .tag-action{background:rgba(16,185,129,0.1);color:var(--success)}
+    .list-items{list-style:none}
+    .list-items li{font-size:12px;color:var(--text-2);padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:6px;line-height:1.5}
+    .list-items li:last-child{border-bottom:none}
+    .list-bullet{color:var(--primary);font-size:12px;flex-shrink:0;margin-top:1px}
+    .ir-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+
+    /* ── STEP 3: COMPILE ──────────────────────────────────── */
+    .progress-steps{margin:20px 0}
+    .prog-step{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);transition:var(--trans)}
+    .prog-step:last-child{border-bottom:none}
+    .prog-icon{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:11px;background:var(--surface2);border:1px solid var(--border);transition:var(--trans)}
+    .prog-step.running .prog-icon{border-color:var(--primary);color:var(--primary)}
+    .prog-step.running .prog-icon::after{content:'';width:10px;height:10px;border-radius:50%;border:2px solid rgba(59,130,246,0.3);border-top-color:var(--primary);animation:rotate 0.6s linear infinite}
+    .prog-step.done .prog-icon{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:var(--success)}
+    .prog-step.done .prog-icon::after{content:'✓';font-size:11px;font-weight:700}
+    .prog-label{font-size:13px;color:var(--text-3);font-weight:500;transition:var(--trans)}
+    .prog-step.running .prog-label{color:var(--text)}
+    .prog-step.done .prog-label{color:var(--text-2)}
+    .prog-bar-wrap{height:3px;background:var(--surface2);border-radius:2px;margin-bottom:20px;overflow:hidden}
+    .prog-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--primary),var(--secondary));width:0%;transition:width 0.5s ease}
+    .compile-result{display:none;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:var(--r-sm);padding:16px 20px;margin-top:16px}
+    .compile-result.show{display:block}
+    .compile-metrics{display:flex;gap:24px;flex-wrap:wrap}
+    .c-metric{display:flex;flex-direction:column;gap:3px}
+    .c-metric-label{font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.8px}
+    .c-metric-value{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--success)}
+
+    /* ── STEP 4: SUCCESS ──────────────────────────────────── */
+    .success-card{text-align:center;padding:40px 28px}
+    .success-icon{width:64px;height:64px;border-radius:50%;background:rgba(16,185,129,0.1);border:2px solid rgba(16,185,129,0.25);display:grid;place-items:center;font-size:28px;margin:0 auto 20px;animation:pop-in 0.4s cubic-bezier(0.175,0.885,0.32,1.275)}
+    @keyframes pop-in{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+    .success-title{font-size:22px;font-weight:700;letter-spacing:-0.3px;margin-bottom:6px}
+    .success-sub{font-size:14px;color:var(--text-2);margin-bottom:28px;line-height:1.6}
+    .success-stats{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:28px}
+    .s-stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 16px;display:flex;flex-direction:column;gap:4px;min-width:100px}
+    .s-stat-label{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.8px;font-weight:600}
+    .s-stat-value{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:var(--accent)}
+
+    /* ── PRICING ───────────────────────────────────────────── */
+    .pricing-section{max-width:720px;margin:48px auto 0;padding:0 20px}
+    .pricing-title{text-align:center;font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .pricing-sub{text-align:center;font-size:13px;color:var(--text-3);margin-bottom:24px}
+    .pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;text-align:center;transition:var(--trans)}
+    .price-card:hover{border-color:var(--border-h)}
+    .price-card.featured{border-color:rgba(139,92,246,0.3);background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(59,130,246,0.06));position:relative;overflow:hidden}
+    .price-badge{position:absolute;top:10px;right:-28px;background:linear-gradient(135deg,var(--secondary),var(--primary));color:white;font-size:9px;font-weight:700;padding:3px 32px;transform:rotate(45deg);letter-spacing:1px}
+    .price-tier{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600}
+    .price-tier.featured{color:var(--secondary)}
+    .price-amount{font-size:32px;font-weight:700;color:var(--text)}
+    .price-period{font-size:13px;color:var(--text-3);margin-bottom:16px}
+    .price-features{text-align:left;list-style:none;padding:0;margin:0 0 16px;font-size:12px;color:var(--text-2);line-height:2}
+    .price-features li::before{content:'✓ ';color:var(--success)}
+    .price-features li strong{color:var(--text)}
+    .price-btn{width:100%;padding:10px;border-radius:var(--r-sm);font-size:13px;font-weight:600;cursor:pointer;transition:var(--trans)}
+    .price-btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-3)}
+    .price-btn-primary{background:var(--primary);border:none;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.3)}
+    .price-btn-primary:hover{background:var(--primary-d);transform:translateY(-1px)}
+
+    /* ── MODALS ────────────────────────────────────────────── */
+    .modal-overlay{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);align-items:center;justify-content:center}
+    .modal-overlay.show{display:flex}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;max-width:380px;width:90%;box-shadow:var(--shadow)}
+    .modal-title{font-size:16px;font-weight:700;margin-bottom:4px}
+    .modal-sub{font-size:12px;color:var(--text-2);margin-bottom:20px}
+    .field{margin-bottom:14px}
+    .field label{display:block;font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.8px}
+    .field input,.field textarea,.field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+    .field input:focus,.field textarea:focus{border-color:var(--border-f);box-shadow:var(--glow)}
+    .modal-actions{display:flex;gap:8px;margin-top:16px}
+    .modal-error{font-size:12px;color:var(--error);margin-top:6px;display:none}
+
+    /* ── OFFLINE ───────────────────────────────────────────── */
+    .offline-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);align-items:center;justify-content:center}
+    .offline-overlay.show{display:flex}
+    .offline-box{background:var(--surface);border:1px solid rgba(239,68,68,0.2);border-radius:var(--r);padding:32px;max-width:400px;width:90%;text-align:center}
+    .offline-icon{font-size:36px;margin-bottom:14px}
+    .offline-title{font-size:18px;font-weight:700;margin-bottom:6px}
+    .offline-msg{font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px}
+    .url-edit{display:flex;gap:8px}
+    .url-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px 10px;outline:none}
+    .url-input:focus{border-color:var(--border-f)}
+
+    /* ── TOASTS ────────────────────────────────────────────── */
+    .toast-wrap{position:fixed;bottom:20px;right:20px;z-index:900;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+    .toast{min-width:260px;max-width:340px;padding:12px 16px;border-radius:var(--r-sm);font-size:12px;font-weight:500;color:var(--text);backdrop-filter:blur(16px);animation:toast-in 0.25s ease;pointer-events:auto}
+    @keyframes toast-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+    .toast-error{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25)}
+    .toast-success{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25)}
+    .toast-info{background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25)}
+
+    /* ── FOOTER ────────────────────────────────────────────── */
+    .footer{border-top:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+    .footer-brand{font-size:12px;color:var(--text-3)}
+    .footer-brand strong{background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:700}
+    .footer-url{display:flex;align-items:center;gap:6px}
+    .footer-url-label{font-size:10px;color:var(--text-3);white-space:nowrap}
+    .footer-url-input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text-2);font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 8px;outline:none;width:180px;transition:border-color 0.2s}
+    .footer-url-input:focus{border-color:var(--border-f)}
+
+    /* ── RESPONSIVE ────────────────────────────────────────── */
+    @media(max-width:640px){
+      .nav{padding:0 16px}
+      .nav-links{display:none}
+      .page{padding:28px 16px 60px}
+      .card{padding:20px 16px}
+      .step-line{width:40px}
+      .pricing-grid{grid-template-columns:1fr}
+      .footer{flex-direction:column;align-items:flex-start;padding:14px 16px}
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient -->
+  <div class="bg-grid"></div>
+  <div class="bg-orb bg-orb-a"></div>
+  <div class="bg-orb bg-orb-b"></div>
+  <div class="bg-orb bg-orb-c"></div>
+
+  <!-- Navbar -->
+  <nav class="nav">
+    <a class="nav-logo" href="#">
+      <div class="nav-bolt">⚡</div>
+      Parakram
+    </a>
+    <div class="nav-links">
+      <a href="lvgl.html" class="nav-link">LVGL Studio</a>
+      <a href="flasher.html" class="nav-link">WebFlasher</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn-nav" onclick="openIssueModal()">🐛 Report</button>
+      <div class="status-badge offline" id="statusBadge">
+        <div class="status-dot"></div>
+        <span id="statusLabel">Checking…</span>
+      </div>
+      <button class="btn-nav" id="loginBtn" onclick="App.openLogin()">Login</button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="page">
+
+    <!-- Step Indicator -->
+    <div class="step-indicator" id="stepIndicator">
+      <div class="step-item active" data-step="1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Describe</div>
+      </div>
+      <div class="step-line" id="line-1"></div>
+      <div class="step-item" data-step="2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Generate</div>
+      </div>
+      <div class="step-line" id="line-2"></div>
+      <div class="step-item" data-step="3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Compile</div>
+      </div>
+      <div class="step-line" id="line-3"></div>
+      <div class="step-item" data-step="4">
+        <div class="step-circle">✓</div>
+        <div class="step-label">Deploy</div>
+      </div>
+    </div>
+
+    <!-- Wizard -->
+    <div class="wizard-wrap">
+
+      <!-- Step 1 -->
+      <div class="wizard-step active card" id="step-1">
+        <div class="step-title">Describe what your device should do</div>
+        <div class="step-sub">Plain English — no code, no wiring diagrams required.</div>
+        <div class="textarea-wrap">
+          <textarea class="prompt-textarea" id="promptInput" placeholder="e.g. Blink an LED every second when the button is pressed..." rows="5"></textarea>
+          <div class="char-count" id="charCount">0 / ∞</div>
+        </div>
+
+        <div class="board-label">Target Board</div>
+        <div class="board-pills" id="boardPills">
+          <button class="pill active" data-board="VDYT-S3-R1">ESP32-S3</button>
+          <button class="pill" data-board="rp2040">RP2040</button>
+          <button class="pill" data-board="stm32f4">STM32F4</button>
+          <button class="pill" data-board="arduino">Arduino</button>
+        </div>
+
+        <div class="examples-label">Quick examples</div>
+        <div class="example-chips">
+          <button class="chip" data-prompt="Blink an LED on button press">Blink LED on button</button>
+          <button class="chip" data-prompt="Read DHT22 temperature and humidity every 5 seconds and display on OLED">DHT22 → OLED</button>
+          <button class="chip" data-prompt="Control a DC motor speed and direction via BLE commands from phone">Motor via BLE</button>
+          <button class="chip" data-prompt="Measure distance with ultrasonic sensor and beep when object closer than 20cm">Parking sensor</button>
+        </div>
+
+        <div class="action-row">
+          <button class="btn btn-primary" id="generateBtn" onclick="App.generate()" disabled>
+            <div class="spin"></div>
+            <span class="btn-text">Generate →</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="wizard-step card" id="step-2">
+        <div class="loader-wrap" id="irLoader">
+          <div class="ring-loader"></div>
+          <div class="loader-label">Generating intent representation…</div>
+        </div>
+        <div id="irPreview" style="display:none">
+          <div class="ir-header">
+            <div class="step-title" style="margin-bottom:0">Generated IR</div>
+            <div class="feasibility-badge" id="feasibilityBadge">Feasible</div>
+          </div>
+          <div class="ir-summary" id="irSummary"></div>
+          <div class="ir-grid">
+            <div class="ir-block" id="irSensors">
+              <div class="ir-block-title">Sensors</div>
+              <div class="tag-row" id="sensorTags"></div>
+            </div>
+            <div class="ir-block" id="irActuators">
+              <div class="ir-block-title">Actuators</div>
+              <div class="tag-row" id="actuatorTags"></div>
+            </div>
+          </div>
+          <div class="ir-grid">
+            <div class="ir-block">
+              <div class="ir-block-title">Triggers</div>
+              <ul class="list-items" id="triggerList"></ul>
+            </div>
+            <div class="ir-block">
+              <div class="ir-block-title">Actions</div>
+              <ul class="list-items" id="actionList"></ul>
+            </div>
+          </div>
+          <div class="ir-actions">
+            <button class="btn btn-ghost" onclick="App.goStep(1)">← Back</button>
+            <button class="btn btn-primary" id="compileBtn" onclick="App.compile()">
+              <span class="btn-text">Compile →</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="wizard-step card" id="step-3">
+        <div class="step-title">Compiling bytecode</div>
+        <div class="step-sub">Translating IR into optimized executable instructions.</div>
+        <div class="prog-bar-wrap"><div class="prog-bar" id="progBar"></div></div>
+        <div class="progress-steps" id="progSteps">
+          <div class="prog-step" data-stage="parse"><div class="prog-icon"></div><div class="prog-label">Parsing IR document</div></div>
+          <div class="prog-step" data-stage="optimize"><div class="prog-icon"></div><div class="prog-label">Optimizing pipeline graph</div></div>
+          <div class="prog-step" data-stage="emit"><div class="prog-icon"></div><div class="prog-label">Emitting bytecode instructions</div></div>
+          <div class="prog-step" data-stage="sign"><div class="prog-icon"></div><div class="prog-label">Signing with Ed25519 key</div></div>
+        </div>
+        <div class="compile-result" id="compileResult">
+          <div class="compile-metrics">
+            <div class="c-metric"><div class="c-metric-label">Binary Size</div><div class="c-metric-value" id="cSize">—</div></div>
+            <div class="c-metric"><div class="c-metric-label">Instructions</div><div class="c-metric-value" id="cInstructions">—</div></div>
+            <div class="c-metric"><div class="c-metric-label">Hash</div><div class="c-metric-value" id="cHash">—</div></div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-ghost" onclick="App.goStep(2)">← Back</button>
+            <button class="btn btn-primary" onclick="App.deploy()"><span class="btn-text">Deploy →</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="wizard-step card" id="step-4">
+        <div class="success-card">
+          <div class="success-icon">✓</div>
+          <div class="success-title">Bytecode ready for deployment!</div>
+          <div class="success-sub">Your firmware has been compiled, signed, and is ready to be<br>pushed to your device over BLE or WiFi.</div>
+          <div class="success-stats" id="successStats">
+            <div class="s-stat"><div class="s-stat-label">Size</div><div class="s-stat-value" id="sSize">—</div></div>
+            <div class="s-stat"><div class="s-stat-label">Hash</div><div class="s-stat-value" id="sHash">—</div></div>
+            <div class="s-stat"><div class="s-stat-label">Instructions</div><div class="s-stat-value" id="sInstructions">—</div></div>
+          </div>
+          <button class="btn btn-ghost" onclick="App.reset()">Start Over</button>
+        </div>
+      </div>
+
+    </div><!-- /wizard-wrap -->
+
+    <!-- Pricing -->
+    <section class="pricing-section">
+      <h2 class="pricing-title">Simple, Fair Pricing</h2>
+      <p class="pricing-sub">A gift to the world. Build hardware in plain English.</p>
+      <div class="pricing-grid">
+        <div class="price-card">
+          <div class="price-tier">Free</div>
+          <div class="price-amount">₹0</div>
+          <div class="price-period">forever</div>
+          <ul class="price-features">
+            <li>2 projects</li>
+            <li>2 devices</li>
+            <li>All 63 drivers</li>
+            <li>LVGL visual designer</li>
+            <li>WebSerial flasher</li>
+            <li>50 AI compilations/mo</li>
+          </ul>
+          <button class="price-btn price-btn-ghost">Current Plan</button>
+        </div>
+        <div class="price-card featured">
+          <div class="price-badge">BEST VALUE</div>
+          <div class="price-tier featured">Maker</div>
+          <div class="price-amount">₹125<span style="font-size:14px;color:var(--text-3);font-weight:400">/mo</span></div>
+          <div class="price-period">~$1.50 · Pay via UPI</div>
+          <ul class="price-features">
+            <li><strong>Unlimited</strong> projects</li>
+            <li>10 devices</li>
+            <li>Everything in Free</li>
+            <li>Priority email support</li>
+            <li>OTA firmware updates</li>
+            <li>Project sync across devices</li>
+            <li>Community marketplace</li>
+          </ul>
+          <button class="price-btn price-btn-primary" onclick="openUpgradeModal()">Upgrade via UPI →</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Upgrade Modal -->
+  <div id="upgradeModal" class="modal-overlay">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-title">⚡ Upgrade to Maker</div>
+      <div class="modal-sub">Pay ₹125 via any UPI app, then enter your transaction reference below.</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px;margin-bottom:14px;text-align:center">
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">Pay to this UPI ID:</div>
+        <div style="font-size:18px;font-weight:700;color:var(--secondary);letter-spacing:0.5px" id="upiIdDisplay">varshinicb@okicici</div>
+        <div style="font-size:24px;font-weight:700;color:var(--text);margin:10px 0">₹125</div>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('upiIdDisplay').textContent);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy UPI ID',1500)" class="btn-nav" style="font-size:11px">Copy UPI ID</button>
+      </div>
+      <div class="field">
+        <label>UTR / Transaction Reference</label>
+        <input id="upgradeUtr" type="text" placeholder="e.g. 412345678901" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" style="flex:1" onclick="closeUpgradeModal()">Cancel</button>
+        <button class="btn btn-primary" style="flex:2" id="upgradeSubmitBtn" onclick="submitUpgrade()">Submit & Activate</button>
+      </div>
+      <p id="upgradeStatus" style="margin:10px 0 0;font-size:11px;display:none;text-align:center"></p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-brand">Built by <strong>Vidyuthlabs</strong> · Parakram Platform · <a href="mailto:varshinicb@vidyuthlabs.co.in" style="color:var(--primary);text-decoration:none">Contact</a></div>
+    <div class="footer-url">
+      <div class="footer-url-label">Backend URL</div>
+      <input class="footer-url-input" id="baseUrlInput" type="text" value="http://localhost:8400" />
+    </div>
+  </footer>
+
+  <!-- Offline overlay -->
+  <div class="offline-overlay" id="offlineOverlay">
+    <div class="offline-box">
+      <div class="offline-icon">📡</div>
+      <div class="offline-title">Backend Offline</div>
+      <div class="offline-msg">Connect your backend at <code style="color:var(--accent)">localhost:8400</code><br>or enter its URL below and retry.</div>
+      <div class="url-edit">
+        <input class="url-input" id="overlayUrlInput" type="text" value="http://localhost:8400" />
+        <button class="btn btn-primary" style="padding:8px 14px" onclick="App.retryConnection()"><span class="btn-text">Retry</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth modal -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal">
+      <div class="modal-title">Sign In</div>
+      <div class="modal-sub">Enter your Parakram credentials to continue.</div>
+      <div class="field"><label>Email / Username</label><input type="text" id="authEmail" placeholder="admin" /></div>
+      <div class="field"><label>Password</label><input type="password" id="authPassword" placeholder="••••••••" /></div>
+      <div class="modal-error" id="authError"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" style="flex:1" onclick="App.closeLogin()">Cancel</button>
+        <button class="btn btn-primary" style="flex:1" id="loginSubmitBtn" onclick="App.submitLogin()">
+          <div class="spin"></div>
+          <span class="btn-text">Sign In</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issue Report Modal -->
+  <div id="issueModal" class="modal-overlay">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-title">🐛 Report an Issue</div>
+      <div class="modal-sub">Issues are emailed directly to the Parakram team.</div>
+      <div class="field"><label>Title</label><input id="issueTitle" type="text" placeholder="Issue title" /></div>
+      <div class="field"><label>Description</label><textarea id="issueDesc" rows="4" placeholder="Describe the issue..." style="resize:vertical"></textarea></div>
+      <div class="field"><label>Your Email (optional)</label><input id="issueEmail" type="email" placeholder="you@example.com" /></div>
+      <div class="field"><label>Severity</label>
+        <select id="issueSeverity">
+          <option value="low">Low — cosmetic / minor</option>
+          <option value="medium" selected>Medium — broken feature</option>
+          <option value="high">High — can't use the platform</option>
+          <option value="critical">Critical — data loss / security</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" style="flex:1" onclick="closeIssueModal()">Cancel</button>
+        <button class="btn btn-primary" style="flex:2" id="issueSubmitBtn" onclick="submitIssue()">Submit Issue</button>
+      </div>
+      <p id="issueStatus" style="margin:10px 0 0;font-size:11px;display:none;text-align:center"></p>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script>
+  function openIssueModal(){document.getElementById('issueModal').classList.add('show');document.getElementById('issueTitle').focus()}
+  function closeIssueModal(){document.getElementById('issueModal').classList.remove('show');document.getElementById('issueTitle').value='';document.getElementById('issueDesc').value='';document.getElementById('issueEmail').value='';document.getElementById('issueStatus').style.display='none'}
+  async function submitIssue(){
+    const title=document.getElementById('issueTitle').value.trim(),desc=document.getElementById('issueDesc').value.trim(),email=document.getElementById('issueEmail').value.trim(),severity=document.getElementById('issueSeverity').value,status=document.getElementById('issueStatus'),btn=document.getElementById('issueSubmitBtn');
+    if(!title||!desc){status.textContent='Please fill in both title and description.';status.style.color='var(--error)';status.style.display='block';return}
+    btn.disabled=true;btn.textContent='Sending...';
+    try{const baseUrl=localStorage.getItem('pk_base_url')||'http://localhost:8400';const res=await fetch(baseUrl+'/api/issues/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,description:desc,reporter_email:email||null,page:window.location.pathname,severity})});const data=await res.json();status.textContent=data.message||'Issue submitted!';status.style.color='var(--success)';status.style.display='block';setTimeout(()=>closeIssueModal(),2500)}catch(e){status.textContent='Failed. Email varshinicb@vidyuthlabs.co.in directly.';status.style.color='var(--error)';status.style.display='block'}finally{btn.disabled=false;btn.textContent='Submit Issue'}
+  }
+  function openUpgradeModal(){document.getElementById('upgradeModal').classList.add('show');document.getElementById('upgradeUtr').focus();document.getElementById('upgradeStatus').style.display='none'}
+  function closeUpgradeModal(){document.getElementById('upgradeModal').classList.remove('show');document.getElementById('upgradeUtr').value=''}
+  async function submitUpgrade(){
+    const utr=document.getElementById('upgradeUtr').value.trim(),status=document.getElementById('upgradeStatus'),btn=document.getElementById('upgradeSubmitBtn');
+    if(utr.length<8){status.textContent='UTR must be at least 8 characters.';status.style.color='var(--error)';status.style.display='block';return}
+    btn.disabled=true;btn.textContent='Submitting...';
+    try{const baseUrl=localStorage.getItem('pk_base_url')||'http://localhost:8400';const token=localStorage.getItem('pk_token');const headers={'Content-Type':'application/json'};if(token)headers['Authorization']='Bearer '+token;const res=await fetch(baseUrl+'/api/billing/claim',{method:'POST',headers,body:JSON.stringify({upi_utr:utr})});const data=await res.json();if(res.ok){status.textContent=data.message||'Payment submitted! Maker tier activates within 24h.';status.style.color='var(--success)'}else{status.textContent=data.error?.message||'Failed. Try again.';status.style.color='var(--error)'}status.style.display='block';if(res.ok)setTimeout(()=>closeUpgradeModal(),3000)}catch(e){status.textContent='Network error.';status.style.color='var(--error)';status.style.display='block'}finally{btn.disabled=false;btn.textContent='Submit & Activate'}
+  }
+  </script>
+
+  <script src="app.js"></script>
+</body>
+</html>

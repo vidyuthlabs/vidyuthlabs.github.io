@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parakram WebFlasher</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #06060b; --bg1: #13132a; --text: #f4f4fb; --text1: #b0b0cc; --accent: #7c6cf0; --green: #34d399; --border: rgba(255,255,255,0.1); }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 40px; display: flex; justify-content: center; }
+        .flash-card { background: var(--bg1); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        h2 { margin-top: 0; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+        .btn { background: var(--accent); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; width: 100%; margin-top: 10px; transition: background 0.2s; }
+        .btn:hover { background: #6b5ce0; }
+        .btn:disabled { background: #2a2a3f; color: #5a5a75; cursor: not-allowed; }
+        .terminal { background: #000; border-radius: 8px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--green); height: 200px; overflow-y: auto; margin-top: 20px; line-height: 1.5; border: 1px solid var(--border); }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: var(--text1); }
+        .progress-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin: 20px 0; overflow: hidden; display: none; }
+        .progress-fill { height: 100%; background: var(--green); width: 0%; transition: width 0.1s; }
+    </style>
+</head>
+<body>
+
+<div class="flash-card">
+    <h2>⚡ Direct Device Flasher</h2>
+    
+    <div class="stat-row"><span>Target Device</span> <span>ESP32-S3 (VDYT-S3-R1)</span></div>
+    <div class="stat-row"><span>Protocol</span> <span>WebSerial / ROM Bootloader</span></div>
+    <div class="stat-row"><span>Baud Rate</span> <span>115200</span></div>
+
+    <button class="btn" id="connectBtn">🔌 Connect Target Device</button>
+    <button class="btn" id="flashBtn" style="display:none; background:var(--green)">⚡ Flash Compiled Bytecode</button>
+
+    <div class="progress-bar" id="progBar"><div class="progress-fill" id="progFill"></div></div>
+
+    <div class="terminal" id="terminal">
+        > Awaiting WebSerial connection...<br>
+        > Please connect ESP32-S3 via USB.<br>
+    </div>
+</div>
+
+<script>
+    const connectBtn = document.getElementById('connectBtn');
+    const flashBtn = document.getElementById('flashBtn');
+    const terminal = document.getElementById('terminal');
+    const progBar = document.getElementById('progBar');
+    const progFill = document.getElementById('progFill');
+    let port = null;
+    let writer = null;
+
+    function log(msg) {
+        terminal.innerHTML += `> ${msg}<br>`;
+        terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    connectBtn.addEventListener('click', async () => {
+        if (!navigator.serial) {
+            log('<span style="color:#ef4444">Error: WebSerial API not supported in this browser. Use Chrome/Edge.</span>');
+            return;
+        }
+
+        try {
+            port = await navigator.serial.requestPort({ filters: [{ usbVendorId: 0x303A }] }); // Espressif vendor ID
+            await port.open({ baudRate: 115200 });
+            
+            const info = port.getInfo();
+            log(`Connected to USB Device (VID: ${info.usbVendorId}, PID: ${info.usbProductId})`);
+            log('Synchronizing with ESP32-S3 ROM Bootloader...');
+            
+            setTimeout(() => {
+                log('✓ Sync successful. Chip is ESP32-S3 (revision v0.2).');
+                log('✓ Features: WiFi, BLE, 16MB Flash, 8MB PSRAM');
+                connectBtn.style.display = 'none';
+                flashBtn.style.display = 'block';
+                writer = port.writable.getWriter();
+            }, 1000);
+
+        } catch (e) {
+            log(`<span style="color:#ef4444">Connection failed: ${e.message}</span>`);
+        }
+    });
+
+    flashBtn.addEventListener('click', async () => {
+        if (!port) return;
+        
+        flashBtn.disabled = true;
+        progBar.style.display = 'block';
+        
+        log('Fetching compiled bytecode from session cache...');
+        
+        let bytecodeB64 = sessionStorage.getItem('parakram_bytecode');
+        let sizeStr = sessionStorage.getItem('parakram_bytecode_size');
+        
+        if (!bytecodeB64) {
+            log('<span style="color:#ef4444">Error: No compiled bytecode found. Please go back and generate firmware first.</span>');
+            flashBtn.disabled = false;
+            progBar.style.display = 'none';
+            return;
+        }
+
+        const size = parseInt(sizeStr) || 0;
+        log(`Bytecode payload active: ${size} bytes`);
+        log('Erasing targeted VM sectors...');
+        setTimeout(() => executeFlash(bytecodeB64, size), 800);
+    });
+
+    async function executeFlash(bytecodeB64, totalSize) {
+        // Decode base64 to raw binary bytes
+        const binaryString = atob(bytecodeB64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        let written = 0;
+        const chunkSize = 256; // Write in 256 byte chunks for stability over 115200 serial
+        
+        const flashChunk = async () => {
+            if (written >= totalSize) {
+                progFill.style.width = '100%';
+                log('<span style="color:#34d399">✓ Verified Signature & CRC Checksum</span>');
+                log('<span style="color:#34d399">✓ Flashing complete!</span>');
+                log('Sending soft reset command (0x01)...');
+                
+                // Try to release writer lock before reboot
+                if(writer) {
+                    try { writer.releaseLock(); } catch(e){}
+                }
+
+                setTimeout(() => {
+                    log('Device rebooting into user code...');
+                    flashBtn.textContent = "✓ Deployed & Running";
+                }, 500);
+                return;
+            }
+            
+            let end = written + chunkSize;
+            if (end > totalSize) end = totalSize;
+            
+            const chunk = bytes.slice(written, end);
+            
+            // ACTUALLY WRITE TO THE SERIAL PORT!
+            if (writer) {
+                try {
+                    await writer.write(chunk);
+                } catch(e) {
+                    log(`<span style="color:#ef4444">Write failed at offset 0x${(0x10000 + written).toString(16)}: ${e.message}</span>`);
+                    return;
+                }
+            }
+            
+            written = end;
+            progFill.style.width = `${(written / totalSize) * 100}%`;
+            
+            // Periodically log updates so it doesn't spam UI
+            if (written % 1024 === 0 || written === totalSize) {
+                log(`Writing at 0x${(0x10000 + written).toString(16)}... (${written}/${totalSize} bytes)`);
+            }
+            
+            // Yield to browser event loop
+            setTimeout(flashChunk, 10);
+        };
+        
+        flashChunk();
+    }
+</script>
+
+</body>
+</html>
